@@ -1,44 +1,20 @@
 #!/usr/bin/node
-const request = require('request');
-const process = require('process');
+const util = require('util');
+const request = util.promisify(require('request'));
+const filmID = process.argv[2];
 
-const URL = 'https://swapi-api.alx-tools.com/api/films/';
-const filmId = process.argv[2];
+async function starwarsCharacters (filmId) {
+  const endpoint = 'https://swapi-api.hbtn.io/api/films/' + filmId;
+  let response = await (await request(endpoint)).body;
+  response = JSON.parse(response);
+  const characters = response.characters;
 
-request(URL + filmId + '/', (err, res, body) => {
-  if (err) {
-    console.log(err);
-    return;
-  } else if (res.statusCode !== 200) {
-    console.log('Error');
-    return;
+  for (let i = 0; i < characters.length; i++) {
+    const urlCharacter = characters[i];
+    let character = await (await request(urlCharacter)).body;
+    character = JSON.parse(character);
+    console.log(character.name);
   }
+}
 
-  body = JSON.parse(body);
-
-  const printed = [];
-  const charactersLength = body.characters.length;
-
-  for (let i = 0; i < charactersLength; i++) {
-    request(body.characters[i], (err, res, body) => {
-      if (err) {
-        console.log(err);
-        return;
-      } else if (res.statusCode !== 200) {
-        console.log('Error');
-        return;
-      }
-
-      body = JSON.parse(body);
-      printed.push({ index: i, name: body.name });
-
-      if (printed.length === charactersLength) {
-        printed.sort((a, b) => a.index - b.index);
-
-        for (let j = 0; j < printed.length; j++) {
-          console.log(printed[j].name);
-        }
-      }
-    });
-  }
-});
+starwarsCharacters(filmID);

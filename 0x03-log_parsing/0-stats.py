@@ -1,80 +1,39 @@
 #!/usr/bin/python3
 """
-This module contains a script that reads from stdin and computes metrics
+Log parsing
 """
-import re
+
 import sys
 
+if __name__ == '__main__':
 
-PATTERN = (r"^(\S+) ?"
-           r"- ?\[\S+ ?\S+\] "
-           r"\"GET /projects/260 HTTP/1\.1\" "
-           r"(\S+) (\S+)$")
+    filesize, count = 0, 0
+    codes = ["200", "301", "400", "401", "403", "404", "405", "500"]
+    stats = {k: 0 for k in codes}
 
+    def print_stats(stats: dict, file_size: int) -> None:
+        print("File size: {:d}".format(filesize))
+        for k, v in sorted(stats.items()):
+            if v:
+                print("{}: {}".format(k, v))
 
-def extract_status_and_size(line):
-    """
-    Extracts the status code and size from a log line
-
-    Args:
-        line (str): The log line to parse
-
-    Returns:
-        Tuple[Optional[str], Optional[str]]: A tuple of the status code & size
-    """
-    match = re.search(PATTERN, line)
-
-    if match:
-        return (match.group(2), match.group(3))
-    else:
-        return None, None
-
-
-def printMetrics(total_size, status_codes):
-    """
-    Prints the metrics for the log lines read so far
-
-    Args:
-        total_size (int): The total size of all the log lines read so far
-        status_codes (Dict[str, int]): A dict of status codes & their counts
-
-    Returns:
-        None
-    """
-    print("File size: {}".format(str(total_size)))
-    for status_code in sorted(status_codes.keys()):
-        if status_codes[status_code] != 0:
-            print("{}: {}".format(status_code, str(status_codes[status_code])))
-
-
-status_codes = {
-                "200": 0, "301": 0,
-                "400": 0, "401": 0,
-                "403": 0, "404": 0,
-                "405": 0, "500": 0}
-total_size = 0
-lines = 0
-
-try:
-    for line in sys.stdin:
-        lines += 1
-
-        status_code, size = extract_status_and_size(line.strip())
-        if status_code and size:
+    try:
+        for line in sys.stdin:
+            count += 1
+            data = line.split()
             try:
-                total_size += int(size)
-            except Exception:
+                status_code = data[-2]
+                if status_code in stats:
+                    stats[status_code] += 1
+            except BaseException:
                 pass
             try:
-                if status_code in status_codes:
-                    status_codes[status_code] += 1
-            except Exception:
+                filesize += int(data[-1])
+            except BaseException:
                 pass
-
-        if lines % 10 == 0 and lines != 0:
-            printMetrics(total_size, status_codes)
-    printMetrics(total_size, status_codes)
-except KeyboardInterrupt:
-    printMetrics(total_size, status_codes)
-    raise
-
+            if count % 10 == 0:
+                print_stats(stats, filesize)
+        print_stats(stats, filesize)
+    except KeyboardInterrupt:
+        print_stats(stats, filesize)
+        raise
