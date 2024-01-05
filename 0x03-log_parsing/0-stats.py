@@ -77,3 +77,4 @@ try:
 except KeyboardInterrupt:
     printMetrics(total_size, status_codes)
     raise
+
