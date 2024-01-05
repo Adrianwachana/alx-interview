@@ -1,20 +1,52 @@
 #!/usr/bin/node
-const util = require('util');
-const request = util.promisify(require('request'));
-const filmID = process.argv[2];
+// script that prints all the characters of a Star Wars movie:
 
-async function starwarsCharacters (filmId) {
-  const endpoint = 'https://swapi-api.hbtn.io/api/films/' + filmId;
-  let response = await (await request(endpoint)).body;
-  response = JSON.parse(response);
-  const characters = response.characters;
+const request = require('request');
 
-  for (let i = 0; i < characters.length; i++) {
-    const urlCharacter = characters[i];
-    let character = await (await request(urlCharacter)).body;
-    character = JSON.parse(character);
-    console.log(character.name);
+const getCharacterName = (characterUrl) => {
+  return new Promise((resolve, reject) => {
+    request(characterUrl, (error, response, body) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(JSON.parse(body).name);
+      }
+    });
+  });
+};
+
+const getMovieCharacters = (movieId) => {
+  return new Promise((resolve, reject) => {
+    const url = `https://swapi-api.alx-tools.com/api/films/${movieId}`;
+
+    request(url, (error, response, body) => {
+      if (error) {
+        reject(error);
+      } else {
+        const characters = JSON.parse(body).characters;
+        resolve(characters);
+      }
+    });
+  });
+};
+
+const printCharacters = async (movieId) => {
+  try {
+    const characters = await getMovieCharacters(movieId);
+
+    for (const character of characters) {
+      const characterName = await getCharacterName(character);
+      console.log(characterName);
+    }
+  } catch (error) {
+    console.error(error);
   }
-}
+};
 
-starwarsCharacters(filmID);
+const movieId = process.argv[2];
+
+if (!movieId) {
+  console.error('Please provide a Movie ID as a command line argument.');
+} else {
+  printCharacters(movieId);
+}
