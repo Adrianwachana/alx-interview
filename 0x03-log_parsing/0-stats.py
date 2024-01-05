@@ -1,51 +1,79 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
-
-""" script that reads stdin line by line and computes metrics"""
-import dis
+"""
+This module contains a script that reads from stdin and computes metrics
+"""
+import re
 import sys
 
 
-def display_metrics(total_size, status_code):
+PATTERN = (r"^(\S+) ?"
+           r"- ?\[\S+ ?\S+\] "
+           r"\"GET /projects/260 HTTP/1\.1\" "
+           r"(\S+) (\S+)$")
+
+
+def extract_status_and_size(line):
     """
-    Function that print the metrics
+    Extracts the status code and size from a log line
+
+    Args:
+        line (str): The log line to parse
+
+    Returns:
+        Tuple[Optional[str], Optional[str]]: A tuple of the status code & size
     """
+    match = re.search(PATTERN, line)
 
-    print('File size: {}'.format(total_size))
-    for key, value in sorted(status_code.items()):
-        if value != 0:
-            print('{}: {}'.format(key, value))
-
-
-if __name__ == '__main__':
-    total_size = 0
-    status_code = {
-        '200': 0,
-        '301': 0,
-        '400': 0,
-        '401': 0,
-        '403': 0,
-        '404': 0,
-        '405': 0,
-        '500': 0
-    }
-
-    try:
-        i = 0
-        for line in sys.stdin:
-            args = line.split()
-            if len(args) > 6:
-                status = args[-2]
-                file_size = args[-1]
-                total_size += int(file_size)
-                if status in status_code:
-                    i += 1
-                    status_code[status] += 1
-                    if i % 10 == 0:
-                        display_metrics(total_size, status_code)
-
-    except KeyboardInterrupt:
-        display_metrics(total_size, status_code)
-        raise
+    if match:
+        return (match.group(2), match.group(3))
     else:
-        display_metrics(total_size, status_code)
+        return None, None
+
+
+def printMetrics(total_size, status_codes):
+    """
+    Prints the metrics for the log lines read so far
+
+    Args:
+        total_size (int): The total size of all the log lines read so far
+        status_codes (Dict[str, int]): A dict of status codes & their counts
+
+    Returns:
+        None
+    """
+    print("File size: {}".format(str(total_size)))
+    for status_code in sorted(status_codes.keys()):
+        if status_codes[status_code] != 0:
+            print("{}: {}".format(status_code, str(status_codes[status_code])))
+
+
+status_codes = {
+                "200": 0, "301": 0,
+                "400": 0, "401": 0,
+                "403": 0, "404": 0,
+                "405": 0, "500": 0}
+total_size = 0
+lines = 0
+
+try:
+    for line in sys.stdin:
+        lines += 1
+
+        status_code, size = extract_status_and_size(line.strip())
+        if status_code and size:
+            try:
+                total_size += int(size)
+            except Exception:
+                pass
+            try:
+                if status_code in status_codes:
+                    status_codes[status_code] += 1
+            except Exception:
+                pass
+
+        if lines % 10 == 0 and lines != 0:
+            printMetrics(total_size, status_codes)
+    printMetrics(total_size, status_codes)
+except KeyboardInterrupt:
+    printMetrics(total_size, status_codes)
+    raise

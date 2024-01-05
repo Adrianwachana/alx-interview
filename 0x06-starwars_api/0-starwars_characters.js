@@ -1,52 +1,44 @@
 #!/usr/bin/node
-// script that prints all the characters of a Star Wars movie:
-
 const request = require('request');
+const process = require('process');
 
-const getCharacterName = (characterUrl) => {
-  return new Promise((resolve, reject) => {
-    request(characterUrl, (error, response, body) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(JSON.parse(body).name);
-      }
-    });
-  });
-};
+const URL = 'https://swapi-api.alx-tools.com/api/films/';
+const filmId = process.argv[2];
 
-const getMovieCharacters = (movieId) => {
-  return new Promise((resolve, reject) => {
-    const url = `https://swapi-api.alx-tools.com/api/films/${movieId}`;
-
-    request(url, (error, response, body) => {
-      if (error) {
-        reject(error);
-      } else {
-        const characters = JSON.parse(body).characters;
-        resolve(characters);
-      }
-    });
-  });
-};
-
-const printCharacters = async (movieId) => {
-  try {
-    const characters = await getMovieCharacters(movieId);
-
-    for (const character of characters) {
-      const characterName = await getCharacterName(character);
-      console.log(characterName);
-    }
-  } catch (error) {
-    console.error(error);
+request(URL + filmId + '/', (err, res, body) => {
+  if (err) {
+    console.log(err);
+    return;
+  } else if (res.statusCode !== 200) {
+    console.log('Error');
+    return;
   }
-};
 
-const movieId = process.argv[2];
+  body = JSON.parse(body);
 
-if (!movieId) {
-  console.error('Please provide a Movie ID as a command line argument.');
-} else {
-  printCharacters(movieId);
-}
+  const printed = [];
+  const charactersLength = body.characters.length;
+
+  for (let i = 0; i < charactersLength; i++) {
+    request(body.characters[i], (err, res, body) => {
+      if (err) {
+        console.log(err);
+        return;
+      } else if (res.statusCode !== 200) {
+        console.log('Error');
+        return;
+      }
+
+      body = JSON.parse(body);
+      printed.push({ index: i, name: body.name });
+
+      if (printed.length === charactersLength) {
+        printed.sort((a, b) => a.index - b.index);
+
+        for (let j = 0; j < printed.length; j++) {
+          console.log(printed[j].name);
+        }
+      }
+    });
+  }
+});

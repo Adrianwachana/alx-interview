@@ -1,3 +1,1 @@
-# Star Wars API
-
-Querying the Starwars API and listing the names of characters per movie.
+# 0x06-starwars_api
