@@ -3,6 +3,7 @@
 Method that determines if all the boxes can be opened.
 """
 
+
 def canUnlockAll(boxes):
     if not isinstance(boxes, list):
         return False
@@ -20,4 +21,3 @@ def canUnlockAll(boxes):
         return True
     else:
         return False
-
